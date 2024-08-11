@@ -27,6 +27,16 @@ int debug_summary_com = 0;
 int debug_summary_pass = 0;
 int norm_output = 1;
 
+ float global_weights_buffer[MAX_WEIGHTS_SIZE] = {0.0};
+ int global_weights_received = 0;
+ int total_weights_expected = 0;
+ int current_layer_i = -1;
+ char current_type = '\0';
+
+ float global_input_buffer[MAX_INPUTS_SIZE] = {0.0};
+ int global_input_received = 0;
+ int total_input_expected = 0;
+ int current_net_train = 0;
 
 void summary_array(char *print_name, float *arr, int n)
 {
@@ -430,32 +440,57 @@ static TEE_Result make_cost_layer_TA_params(uint32_t param_types,
 }
 
 
-static TEE_Result transfer_weights_TA_params(uint32_t param_types,
-                                             TEE_Param params[4])
-{
+static TEE_Result transfer_weights_TA_params(uint32_t param_types, TEE_Param params[4]) {
     uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
                                                TEE_PARAM_TYPE_MEMREF_INPUT,
                                                TEE_PARAM_TYPE_VALUE_INPUT,
                                                TEE_PARAM_TYPE_NONE);
 
-    //DMSG("has been called");
-
     if (param_types != exp_param_types)
         return TEE_ERROR_BAD_PARAMETERS;
 
     float *vec = params[0].memref.buffer;
-
     int *params1 = params[1].memref.buffer;
     int length = params1[0];
     int layer_i = params1[1];
     int additional = params1[2];
-
     char type = params[2].value.a;
 
-    load_weights_TA(vec, length, layer_i, type, additional);
+    // Initialize the total expected size and other variables on the first chunk
+    if (global_weights_received == 0) {
+        total_weights_expected = length + additional; // Assuming additional may provide more context
+        current_layer_i = layer_i;
+        current_type = type;
+    }
+
+    // Check for consistency in layer and type
+    if (layer_i != current_layer_i || type != current_type) {
+        return TEE_ERROR_BAD_PARAMETERS; // Mismatch in expected parameters
+    }
+
+    // Accumulate the received data into the global buffer
+    if (global_weights_received + length <= MAX_WEIGHTS_SIZE) {
+        memcpy(global_weights_buffer + global_weights_received, vec, length * sizeof(float));
+        global_weights_received += length;
+    } else {
+        return TEE_ERROR_OVERFLOW; // Exceeding the maximum buffer size
+    }
+
+    // Check if the full array has been received
+    if (global_weights_received >= total_weights_expected) {
+        // Call the weight processing function with the accumulated data
+        load_weights_TA(global_weights_buffer, total_weights_expected, current_layer_i, current_type, additional);
+
+        // Reset for the next transfer
+        global_weights_received = 0;
+        total_weights_expected = 0;
+        current_layer_i = -1;
+        current_type = '\0';
+    }
 
     return TEE_SUCCESS;
 }
+
 
 static TEE_Result save_weights_TA_params(uint32_t param_types,
                                              TEE_Param params[4])
@@ -491,33 +526,56 @@ static TEE_Result save_weights_TA_params(uint32_t param_types,
 
 
 
-static TEE_Result forward_network_TA_params(uint32_t param_types,
-                                          TEE_Param params[4])
+static TEE_Result forward_network_TA_params(uint32_t param_types, TEE_Param params[4])
 {
-    uint32_t exp_param_types = TEE_PARAM_TYPES( TEE_PARAM_TYPE_MEMREF_INPUT,
+    uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
                                                TEE_PARAM_TYPE_VALUE_INPUT,
                                                TEE_PARAM_TYPE_NONE,
                                                TEE_PARAM_TYPE_NONE);
-    //TEE_PARAM_TYPE_VALUE_INPUT
 
-    //DMSG("has been called");
-
-    if (param_types != exp_param_types)
-    return TEE_ERROR_BAD_PARAMETERS;
+    if (param_types != exp_param_types) {
+        return TEE_ERROR_BAD_PARAMETERS;
+    }
 
     float *net_input = params[0].memref.buffer;
     int net_train = params[1].value.a;
+    int total_size = params[1].value.b;
+    int length = params[0].memref.size / sizeof(float);
 
-    netta.input = net_input;
-    netta.train = net_train;
-
-    if(debug_summary_com == 1){
-        summary_array("forward_network / net.input", netta.input, params[0].memref.size / sizeof(float));
+    // Initialize expected size on the first chunk
+    if (global_input_received == 0) {
+        total_input_expected = total_size; // Set this according to what you expect for the total size
+        current_net_train = net_train;
     }
-    forward_network_TA();
+
+    // Accumulate the data
+    if (global_input_received + length <= MAX_WEIGHTS_SIZE) {
+        memcpy(global_input_buffer + global_input_received, net_input, length * sizeof(float));
+        global_input_received += length;
+    } else {
+        return TEE_ERROR_OVERFLOW; // Exceeding the buffer size
+    }
+
+    // Process the accumulated data if full input is received
+    if (global_input_received >= total_input_expected) {
+        netta.input = global_input_buffer;
+        netta.train = current_net_train;
+
+        if (debug_summary_com == 1) {
+            summary_array("forward_network / net.input", netta.input, total_input_expected);
+        }
+
+        forward_network_TA();
+
+        // Reset for the next operation
+        global_input_received = 0;
+        total_input_expected = 0;
+        current_net_train = 0;
+    }
 
     return TEE_SUCCESS;
 }
+
 
 //
 // static TEE_Result forward_network_TA_params(uint32_t param_types,
