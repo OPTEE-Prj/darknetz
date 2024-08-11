@@ -4,10 +4,14 @@
 #include "darknet_TA.h"
 #include "network_TA.h"
 
+#define MAX_WEIGHTS_SIZE 1500000 // Define this based on the maximum expected size
+#define MAX_INPUTS_SIZE 1 // Define this based on the maximum expected size
+
 extern float *netta_truth;
 extern int debug_summary_com;
 extern int debug_summary_pass;
-
+extern float global_weights_buffer[MAX_WEIGHTS_SIZE];
+extern float global_input_buffer[MAX_INPUTS_SIZE];
 /*
  * This UUID is generated with uuidgen
  * the ITU-T UUID generator at http://www.itu.int/ITU-T/asn1/uuid.html

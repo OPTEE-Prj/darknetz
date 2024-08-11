@@ -24,6 +24,9 @@ int sysCount = 0;
 char state;
 int debug_plot_bool = 0;
 
+#define CHUNK_SIZE 1024  // Define a suitable chunk size based on your constraints
+
+
 void debug_plot(char *filename, int num, float *tobeplot, int length)
 {
     struct stat st = {0};
@@ -469,33 +472,44 @@ void make_cost_layer_CA(int batch, int inputs, COST_TYPE cost_type, float scale,
          res, origin);
 }
 
-void transfer_weights_CA(float *vec, int length, int layer_i, char type, int additional)
-{
+void transfer_weights_CA(float *vec, int length, int layer_i, char type, int additional) {
     TEEC_Operation op;
     uint32_t origin;
     TEEC_Result res;
-
     int passint[3];
-    passint[0] = length;
-    passint[1] = layer_i;
-    passint[2] = additional;
+    int offset = 0;
 
-    memset(&op, 0, sizeof(op));
-    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_INPUT, TEEC_VALUE_INPUT, TEEC_NONE);
+    // Define the maximum number of floats you can send per chunk
+    const int chunk_size = CHUNK_SIZE;
 
-    op.params[0].tmpref.buffer = vec;
-    op.params[0].tmpref.size = sizeof(float)*length;
+    while (offset < length) {
+        int current_chunk_size = chunk_size;
+        if (offset + current_chunk_size > length) {
+            current_chunk_size = length - offset;
+        }
 
-    op.params[1].tmpref.buffer = passint;
-    op.params[1].tmpref.size = sizeof(passint);
+        passint[0] = current_chunk_size;
+        passint[1] = layer_i;
+        passint[2] = additional;
 
-    op.params[2].value.a = type;
+        memset(&op, 0, sizeof(op));
+        op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_INPUT, TEEC_VALUE_INPUT, TEEC_NONE);
 
-    res = TEEC_InvokeCommand(&sess, TRANS_WEI_CMD,
-                             &op, &origin);
-    if (res != TEEC_SUCCESS)
-        errx(1, "TEEC_InvokeCommand(TRANS_WEI) failed 0x%x origin 0x%x",
-             res, origin);
+        op.params[0].tmpref.buffer = vec + offset;
+        op.params[0].tmpref.size = sizeof(float) * current_chunk_size;
+
+        op.params[1].tmpref.buffer = passint;
+        op.params[1].tmpref.size = sizeof(passint);
+
+        op.params[2].value.a = type;
+
+        res = TEEC_InvokeCommand(&sess, TRANS_WEI_CMD, &op, &origin);
+        if (res != TEEC_SUCCESS) {
+            errx(1, "TEEC_InvokeCommand(TRANS_WEI) failed 0x%x origin 0x%x", res, origin);
+        }
+
+        offset += current_chunk_size;
+    }
 }
 
 void save_weights_CA(float *vec, int length, int layer_i, char type)
@@ -535,42 +549,53 @@ void save_weights_CA(float *vec, int length, int layer_i, char type)
              res, origin);
 }
 
-
-
 void forward_network_CA(float *net_input, int l_inputs, int net_batch, int net_train)
 {
-    //invoke op and transfer paramters
     TEEC_Operation op;
     uint32_t origin;
     TEEC_Result res;
+    int offset = 0;
+    int total_size = l_inputs * net_batch;
+    int remaining_size = total_size;
 
-    memset(&op, 0, sizeof(op));
-    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_VALUE_INPUT,
-                                     TEEC_NONE, TEEC_NONE);
+    while (remaining_size > 0) {
+        memset(&op, 0, sizeof(op));
+        op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_VALUE_INPUT, TEEC_NONE, TEEC_NONE);
 
-    float *params0 = malloc(sizeof(float)*l_inputs*net_batch);
-    for(int z=0; z<l_inputs*net_batch; z++){
-        params0[z] = net_input[z];
+        int current_chunk_size = (remaining_size > CHUNK_SIZE) ? CHUNK_SIZE : remaining_size;
+
+        float *params0 = malloc(sizeof(float) * current_chunk_size);
+        if (!params0) {
+            errx(1, "Memory allocation failed for params0");
+        }
+
+        for (int z = 0; z < current_chunk_size; z++) {
+            params0[z] = net_input[offset + z];
+        }
+
+        op.params[0].tmpref.buffer = params0;
+        op.params[0].tmpref.size = sizeof(float) * current_chunk_size;
+        op.params[1].value.a = net_train;
+        op.params[1].value.b = total_size;
+
+        // Debug plot
+        if (debug_plot_bool == 1) {
+            debug_plot("forward_net_input_", sysCount, params0, current_chunk_size);
+        }
+
+        res = TEEC_InvokeCommand(&sess, FORWARD_CMD, &op, &origin);
+        if (res != TEEC_SUCCESS) {
+            free(params0);
+            errx(1, "TEEC_InvokeCommand(forward) failed 0x%x origin 0x%x", res, origin);
+        }
+
+        free(params0);
+
+        offset += current_chunk_size;
+        remaining_size -= current_chunk_size;
     }
-    int params1 = net_train;
-
-    op.params[0].tmpref.buffer = params0;
-    op.params[0].tmpref.size = sizeof(float) * l_inputs*net_batch;
-    op.params[1].value.a = params1;
-
-    /////////  debug_plot  /////////
-    if(debug_plot_bool == 1){
-        debug_plot("forward_net_input_", sysCount, params0, l_inputs*net_batch);
-    }
-    res = TEEC_InvokeCommand(&sess, FORWARD_CMD,
-                             &op, &origin);
-
-    if (res != TEEC_SUCCESS)
-    errx(1, "TEEC_InvokeCommand(forward) failed 0x%x origin 0x%x",
-         res, origin);
-
-    free(params0);
 }
+
 
 
 void forward_network_back_CA(float *l_output, int net_inputs, int net_batch)
