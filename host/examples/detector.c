@@ -1,4 +1,18 @@
 #include "darknet.h"
+#include "main.h"
+#include "parser.h"
+
+#include <sys/time.h>
+#include <assert.h>
+#include <sys/resource.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "tcp_transfer.h"
 
 static int coco_ids[] = {1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90};
 
@@ -794,6 +808,22 @@ void run_detector(int argc, char **argv)
     int cam_index = find_int_arg(argc, argv, "-c", 0);
     int frame_skip = find_int_arg(argc, argv, "-s", 0);
     int avg = find_int_arg(argc, argv, "-avg", 3);
+
+    // partition point of DNN
+    int pp_start = find_int_arg(argc, argv, "-pp_start", 999);
+    if(pp_start == 999){ // when using pp_start_f for forzen first layers outside TEE
+        pp_start = find_int_arg(argc, argv, "-pp_start_f", 999);
+        frozen_bool = 1;
+    }
+    if(pp_start == 999){ // when using pp_f_only for forzen first layers (all in REE)
+        pp_start = find_int_arg(argc, argv, "-pp_f_only", 999);
+        frozen_bool = 2;
+    }
+
+    partition_point1 = pp_start - 1;
+    int pp_end = find_int_arg(argc, argv, "-pp_end", 999);
+    partition_point2 = pp_end;
+
     if(argc < 4){
         fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]);
         return;

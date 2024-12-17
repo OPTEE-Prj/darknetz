@@ -52,3 +52,22 @@ float rand_normal_TA(float mu, float sigma){
     
     return (mu + sigma * (float) X1);
 }
+
+float mag_array_TA(float *a, int n)
+{
+    int i;
+    float sum = 0;
+    for(i = 0; i < n; ++i){
+        sum += a[i]*a[i];
+    }
+    return ta_sqrt(sum);
+}
+
+int int_index_TA(int *a, int val, int n)
+{
+    int i;
+    for(i = 0; i < n; ++i){
+        if(a[i] == val) return i;
+    }
+    return -1;
+}

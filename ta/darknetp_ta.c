@@ -7,6 +7,7 @@
 #include "maxpool_layer_TA.h"
 #include "avgpool_layer_TA.h"
 #include "dropout_layer_TA.h"
+#include "yolo_layer_TA.h"
 
 #include "connected_layer_TA.h"
 #include "softmax_layer_TA.h"
