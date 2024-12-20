@@ -19,7 +19,7 @@
 #include <tee_internal_api_extensions.h>
 
 
-layer_TA make_yolo_layer_TA(int batch, int w, int h, int n, int total, int *mask, int classes)
+layer_TA make_yolo_layer_TA_new(int batch, int w, int h, int n, int total, int *mask, int classes)
 {
     int i;
     layer_TA l = {0};
@@ -65,7 +65,6 @@ layer_TA make_yolo_layer_TA(int batch, int w, int h, int n, int total, int *mask
     // # TODO : why is there implicit declaration error...
     // fprintf(stderr, "yolo\n");
     // srand(0);
-
     return l;
 }
 

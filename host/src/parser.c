@@ -366,6 +366,11 @@ layer parse_yolo(list *options, size_params params)
             a = strchr(a, ',')+1;
         }
     }
+
+    if(count_global > partition_point1 && count_global <= partition_point2){
+        make_yolo_layer_CA(params.batch, params.w, params.h, num, total, mask, classes);
+    }
+
     return l;
 }
 

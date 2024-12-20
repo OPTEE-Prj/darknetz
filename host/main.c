@@ -251,6 +251,39 @@ void make_convolutional_layer_CA(int batch, int h, int w, int c, int n, int grou
          res, origin);
 }
 
+void make_yolo_layer_CA(int batch, int w, int h, int n, int total, int *mask, int classes)
+{
+  TEEC_Operation op;
+  uint32_t origin;
+  TEEC_Result res;
+
+    int passint[6];
+    passint[0] = batch;
+    passint[1] = w;
+    passint[2] = h;
+    passint[3] = n;
+    passint[4] = total;
+    passint[5] = classes;
+
+    memset(&op, 0, sizeof(op));
+    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_INPUT,
+                                     TEEC_NONE, TEEC_NONE);
+
+    op.params[0].tmpref.buffer = passint;
+    op.params[0].tmpref.size = sizeof(passint);
+
+    op.params[1].tmpref.buffer = mask;
+    op.params[1].tmpref.size = sizeof(mask);
+
+    res = TEEC_InvokeCommand(&sess, MAKE_YOLO_CMD,
+                             &op, &origin);
+
+
+    if (res != TEEC_SUCCESS)
+    errx(1, "TEEC_InvokeCommand(YOLO) failed 0x%x origin 0x%x",
+         res, origin);
+}
+
 void make_maxpool_layer_CA(int batch, int h, int w, int c, int size, int stride, int padding)
 {
   //invoke op and transfer paramters

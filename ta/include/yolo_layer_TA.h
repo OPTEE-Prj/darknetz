@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <time.h>
 
-layer_TA make_yolo_layer_TA(int batch, int w, int h, int n, int total, int *mask, int classes);
+layer_TA make_yolo_layer_TA_new(int batch, int w, int h, int n, int total, int *mask, int classes);
 void forward_yolo_layer_TA(const layer_TA l, network_TA net);
 void backward_yolo_layer_TA(const layer_TA l, network_TA net);
 void resize_yolo_layer_TA(layer_TA *l, int w, int h);

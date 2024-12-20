@@ -5,6 +5,8 @@
 #include "cuda.h"
 #include "utils.h"
 
+#include "parser.h"
+
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -53,8 +55,13 @@ layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int 
     l.output_gpu = cuda_make_array(l.output, batch*l.outputs);
     l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
 #endif
-
-    fprintf(stderr, "yolo\n");
+    // TODO : Can I figure out the size and stride?
+    if(count_global <= partition_point1 || count_global > partition_point2){
+        fprintf(stderr, "yolo  %5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d  %5.3f BFLOPs\n", n, 0, 0, 0, w, h, l.c, l.out_w, l.out_h, l.out_c, (2.0 * l.n * l.size*l.size*l.c/l.groups * l.out_h*l.out_w)/1000000000.);
+    }else{
+        fprintf(stderr, "yolo_TA%5d %2d x%2d /%2d  %4d x%4d x%4d   ->  %4d x%4d x%4d  %5.3f BFLOPs\n", n, 0, 0, 0, w, h, l.c, l.out_w, l.out_h, l.out_c, (2.0 * l.n * l.size*l.size*l.c/l.groups * l.out_h*l.out_w)/1000000000.);
+    }
+    // fprintf(stderr, "yolo\n");
     srand(0);
 
     return l;
