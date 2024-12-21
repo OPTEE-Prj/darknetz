@@ -4,13 +4,13 @@
 
 typedef struct{
     float dx, dy, dw, dh;
-} dbox;
+} dbox_TA;
 
-float box_rmse_TA(box a, box b);
-box float_to_box_TA(float *f, int stride);
-float box_iou_TA(box a, box b);
-dbox diou_TA(box a, box b);
-box decode_box_TA(box b, box anchor);
-box encode_box_TA(box b, box anchor);
+float box_rmse_TA(box_TA a, box_TA b);
+box_TA float_to_box_TA(float *f, int stride);
+float box_iou_TA(box_TA a, box_TA b);
+dbox_TA diou_TA(box_TA a, box_TA b);
+box_TA decode_box_TA(box_TA b, box_TA anchor);
+box_TA encode_box_TA(box_TA b, box_TA anchor);
 
 #endif

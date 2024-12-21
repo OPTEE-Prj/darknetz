@@ -371,10 +371,10 @@ typedef struct network_TA{
 
 typedef struct{
     float x, y, w, h;
-} box;
+} box_TA;
 
 typedef struct detection{
-    box bbox;
+    box_TA bbox;
     int classes;
     float *prob;
     float *mask;

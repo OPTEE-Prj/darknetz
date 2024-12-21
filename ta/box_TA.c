@@ -40,10 +40,10 @@ void do_nms_TA_obj_TA(detection *dets, int total, int classes, float thresh)
     qsort(dets, total, sizeof(detection), nms_comparator_TA);
     for(i = 0; i < total; ++i){
         if(dets[i].objectness == 0) continue;
-        box a = dets[i].bbox;
+        box_TA a = dets[i].bbox;
         for(j = i+1; j < total; ++j){
             if(dets[j].objectness == 0) continue;
-            box b = dets[j].bbox;
+            box_TA b = dets[j].bbox;
             if (box_iou_TA(a, b) > thresh){
                 dets[j].objectness = 0;
                 for(k = 0; k < classes; ++k){
@@ -77,9 +77,9 @@ void do_nms_TA_sort_TA(detection *dets, int total, int classes, float thresh)
         qsort(dets, total, sizeof(detection), nms_comparator_TA);
         for(i = 0; i < total; ++i){
             if(dets[i].prob[k] == 0) continue;
-            box a = dets[i].bbox;
+            box_TA a = dets[i].bbox;
             for(j = i+1; j < total; ++j){
-                box b = dets[j].bbox;
+                box_TA b = dets[j].bbox;
                 if (box_iou_TA(a, b) > thresh){
                     dets[j].prob[k] = 0;
                 }
@@ -88,9 +88,9 @@ void do_nms_TA_sort_TA(detection *dets, int total, int classes, float thresh)
     }
 }
 
-box float_to_box_TA(float *f, int stride)
+box_TA float_to_box_TA(float *f, int stride)
 {
-    box b = {0};
+    box_TA b = {0};
     b.x = f[0];
     b.y = f[1*stride];
     b.w = f[2*stride];
@@ -98,9 +98,9 @@ box float_to_box_TA(float *f, int stride)
     return b;
 }
 
-dbox derivative_TA(box a, box b)
+dbox_TA derivative_TA(box_TA a, box_TA b)
 {
-    dbox d;
+    dbox_TA d;
     d.dx = 0;
     d.dw = 0;
     float l1 = a.x - a.w/2;
@@ -160,7 +160,7 @@ float overlap_TA(float x1, float w1, float x2, float w2)
     return right - left;
 }
 
-float box_intersection_TA(box a, box b)
+float box_intersection_TA(box_TA a, box_TA b)
 {
     float w = overlap_TA(a.x, a.w, b.x, b.w);
     float h = overlap_TA(a.y, a.h, b.y, b.h);
@@ -169,19 +169,19 @@ float box_intersection_TA(box a, box b)
     return area;
 }
 
-float box_union_TA(box a, box b)
+float box_union_TA(box_TA a, box_TA b)
 {
     float i = box_intersection_TA(a, b);
     float u = a.w*a.h + b.w*b.h - i;
     return u;
 }
 
-float box_iou_TA(box a, box b)
+float box_iou_TA(box_TA a, box_TA b)
 {
     return box_intersection_TA(a, b)/box_union_TA(a, b);
 }
 
-float box_rmse_TA(box a, box b)
+float box_rmse_TA(box_TA a, box_TA b)
 {
     return ta_sqrt(ta_pow(a.x-b.x, 2) + 
                 ta_pow(a.y-b.y, 2) + 
@@ -189,12 +189,12 @@ float box_rmse_TA(box a, box b)
                 ta_pow(a.h-b.h, 2));
 }
 
-dbox dintersect_TA(box a, box b)
+dbox_TA dintersect_TA(box_TA a, box_TA b)
 {
     float w = overlap_TA(a.x, a.w, b.x, b.w);
     float h = overlap_TA(a.y, a.h, b.y, b.h);
-    dbox dover = derivative_TA(a, b);
-    dbox di;
+    dbox_TA dover = derivative_TA(a, b);
+    dbox_TA di;
 
     di.dw = dover.dw*h;
     di.dx = dover.dx*h;
@@ -204,11 +204,11 @@ dbox dintersect_TA(box a, box b)
     return di;
 }
 
-dbox dunion_TA(box a, box b)
+dbox_TA dunion_TA(box_TA a, box_TA b)
 {
-    dbox du;
+    dbox_TA du;
 
-    dbox di = dintersect_TA(a, b);
+    dbox_TA di = dintersect_TA(a, b);
     du.dw = a.h - di.dw;
     du.dh = a.w - di.dh;
     du.dx = -di.dx;
@@ -220,14 +220,14 @@ dbox dunion_TA(box a, box b)
 
 void test_dunion_TA()
 {
-    box a = {0, 0, 1, 1};
-    box dxa= {0+.0001, 0, 1, 1};
-    box dya= {0, 0+.0001, 1, 1};
-    box dwa= {0, 0, 1+.0001, 1};
-    box dha= {0, 0, 1, 1+.0001};
+    box_TA a = {0, 0, 1, 1};
+    box_TA dxa= {0+.0001, 0, 1, 1};
+    box_TA dya= {0, 0+.0001, 1, 1};
+    box_TA dwa= {0, 0, 1+.0001, 1};
+    box_TA dha= {0, 0, 1, 1+.0001};
 
-    box b = {.5, .5, .2, .2};
-    dbox di = dunion_TA(a,b);
+    box_TA b = {.5, .5, .2, .2};
+    dbox_TA di = dunion_TA(a,b);
     printf("Union: %f %f %f %f\n", di.dx, di.dy, di.dw, di.dh);
     float inter =  box_union_TA(a, b);
     float xinter = box_union_TA(dxa, b);
@@ -242,14 +242,14 @@ void test_dunion_TA()
 }
 void test_dintersect_TA()
 {
-    box a = {0, 0, 1, 1};
-    box dxa= {0+.0001, 0, 1, 1};
-    box dya= {0, 0+.0001, 1, 1};
-    box dwa= {0, 0, 1+.0001, 1};
-    box dha= {0, 0, 1, 1+.0001};
+    box_TA a = {0, 0, 1, 1};
+    box_TA dxa= {0+.0001, 0, 1, 1};
+    box_TA dya= {0, 0+.0001, 1, 1};
+    box_TA dwa= {0, 0, 1+.0001, 1};
+    box_TA dha= {0, 0, 1, 1+.0001};
 
-    box b = {.5, .5, .2, .2};
-    dbox di = dintersect_TA(a,b);
+    box_TA b = {.5, .5, .2, .2};
+    dbox_TA di = dintersect_TA(a,b);
     printf("Inter: %f %f %f %f\n", di.dx, di.dy, di.dw, di.dh);
     float inter =  box_intersection_TA(a, b);
     float xinter = box_intersection_TA(dxa, b);
@@ -267,18 +267,18 @@ void test_box_TA()
 {
     test_dintersect_TA();
     test_dunion_TA();
-    box a = {0, 0, 1, 1};
-    box dxa= {0+.00001, 0, 1, 1};
-    box dya= {0, 0+.00001, 1, 1};
-    box dwa= {0, 0, 1+.00001, 1};
-    box dha= {0, 0, 1, 1+.00001};
+    box_TA a = {0, 0, 1, 1};
+    box_TA dxa= {0+.00001, 0, 1, 1};
+    box_TA dya= {0, 0+.00001, 1, 1};
+    box_TA dwa= {0, 0, 1+.00001, 1};
+    box_TA dha= {0, 0, 1, 1+.00001};
 
-    box b = {.5, 0, .2, .2};
+    box_TA b = {.5, 0, .2, .2};
 
     float iou = box_iou_TA(a,b);
     iou = (1-iou)*(1-iou);
     printf("%f\n", iou);
-    dbox d = diou_TA(a, b);
+    dbox_TA d = diou_TA(a, b);
     printf("%f %f %f %f\n", d.dx, d.dy, d.dw, d.dh);
 
     float xiou = box_iou_TA(dxa, b);
@@ -292,13 +292,13 @@ void test_box_TA()
     printf("manual %f %f %f %f\n", xiou, yiou, wiou, hiou);
 }
 
-dbox diou_TA(box a, box b)
+dbox_TA diou_TA(box_TA a, box_TA b)
 {
     float u = box_union_TA(a,b);
     float i = box_intersection_TA(a,b);
-    dbox di = dintersect_TA(a,b);
-    dbox du = dunion_TA(a,b);
-    dbox dd = {0,0,0,0};
+    dbox_TA di = dintersect_TA(a,b);
+    dbox_TA du = dunion_TA(a,b);
+    dbox_TA dd = {0,0,0,0};
 
     if(i <= 0 || 1) {
         dd.dx = b.x - a.x;
@@ -316,7 +316,7 @@ dbox diou_TA(box a, box b)
 }
 
 
-void do_nms_TA(box *boxes, float **probs, int total, int classes, float thresh)
+void do_nms_TA(box_TA *boxes, float **probs, int total, int classes, float thresh)
 {
     int i, j, k;
     for(i = 0; i < total; ++i){
@@ -336,9 +336,9 @@ void do_nms_TA(box *boxes, float **probs, int total, int classes, float thresh)
     }
 }
 
-box encode_box_TA(box b, box anchor)
+box_TA encode_box_TA(box_TA b, box_TA anchor)
 {
-    box encode;
+    box_TA encode;
     encode.x = (b.x - anchor.x) / anchor.w;
     encode.y = (b.y - anchor.y) / anchor.h;
     encode.w = ta_log(2, b.w / anchor.w);
@@ -346,9 +346,9 @@ box encode_box_TA(box b, box anchor)
     return encode;
 }
 
-box decode_box_TA(box b, box anchor)
+box_TA decode_box_TA(box_TA b, box_TA anchor)
 {
-    box decode;
+    box_TA decode;
     decode.x = b.x * anchor.w + anchor.x;
     decode.y = b.y * anchor.h + anchor.y;
     decode.w = ta_pow(2., b.w) * anchor.w;
