@@ -87,7 +87,7 @@ void forward_network_TA()
         if(l.delta){
             fill_cpu_TA(l.outputs * l.batch, 0, l.delta, 1);
         }
-
+        
         l.forward_TA(l, netta);
 
         if(debug_summary_pass == 1){

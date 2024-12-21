@@ -251,29 +251,42 @@ void make_convolutional_layer_CA(int batch, int h, int w, int c, int n, int grou
          res, origin);
 }
 
-void make_yolo_layer_CA(int batch, int w, int h, int n, int total, int *mask, int classes)
+void make_yolo_layer_CA(int batch, int w, int h, int num, int total, int *mask, int classes, int max_boxes, float jitter, float ignore_thresh, float truth_thresh, int random, float* biases)
 {
   TEEC_Operation op;
   uint32_t origin;
   TEEC_Result res;
 
-    int passint[6];
+    int passint[8];
     passint[0] = batch;
     passint[1] = w;
     passint[2] = h;
-    passint[3] = n;
+    passint[3] = num;
     passint[4] = total;
     passint[5] = classes;
+    passint[6] = max_boxes;
+    passint[7] = random;
+
+    float passfloat[3];
+    passfloat[0] = jitter;
+    passfloat[1] = ignore_thresh;
+    passfloat[2] = truth_thresh;
 
     memset(&op, 0, sizeof(op));
     op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_INPUT,
-                                     TEEC_NONE, TEEC_NONE);
+                                     TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_INPUT);
 
     op.params[0].tmpref.buffer = passint;
     op.params[0].tmpref.size = sizeof(passint);
 
-    op.params[1].tmpref.buffer = mask;
-    op.params[1].tmpref.size = sizeof(mask);
+    op.params[1].tmpref.buffer = passfloat;
+    op.params[1].tmpref.size = sizeof(passfloat);
+
+    op.params[2].tmpref.buffer = mask;
+    op.params[2].tmpref.size = sizeof(mask);
+
+    op.params[3].tmpref.buffer = biases;
+    op.params[3].tmpref.size = sizeof(biases);
 
     res = TEEC_InvokeCommand(&sess, MAKE_YOLO_CMD,
                              &op, &origin);

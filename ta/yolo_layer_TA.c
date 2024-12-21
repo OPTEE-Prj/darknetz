@@ -169,6 +169,7 @@ void forward_yolo_layer_TA(const layer_TA l, network_TA net)
             for (i = 0; i < l.w; ++i) {
                 for (n = 0; n < l.n; ++n) {
                     int box_index = entry_index_TA(l, b, n*l.w*l.h + j*l.w + i, 0);
+                    // TODO : error occuring here.
                     box_TA pred = get_yolo_box_TA(l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, net.w, net.h, l.w*l.h);
                     float best_iou = 0;
                     int best_t = 0;

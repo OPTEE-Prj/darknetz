@@ -368,7 +368,7 @@ layer parse_yolo(list *options, size_params params)
     }
 
     if(count_global > partition_point1 && count_global <= partition_point2){
-        make_yolo_layer_CA(params.batch, params.w, params.h, num, total, mask, classes);
+        make_yolo_layer_CA(params.batch, params.w, params.h, num, total, mask, classes, l.max_boxes, l.jitter, l.ignore_thresh, l.truth_thresh, l.random, l.biases);
     }
 
     return l;
