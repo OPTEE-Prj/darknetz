@@ -851,13 +851,15 @@ static TEE_Result net_truth_TA_params(uint32_t param_types,
                                                TEE_PARAM_TYPE_NONE);
     //TEE_PARAM_TYPE_VALUE_INPUT
 
-    //DMSG("has been called");
+    // DMSG("has been called");
 
     if (param_types != exp_param_types)
     return TEE_ERROR_BAD_PARAMETERS;
 
     int size_truth = params[0].memref.size;
     float *params0 = params[0].memref.buffer;
+
+    netta_truth = calloc(size_truth / sizeof(float), sizeof(float));
 
     for(int z=0; z<size_truth/sizeof(float); z++){
         netta_truth[z] = params0[z];

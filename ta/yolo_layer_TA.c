@@ -186,7 +186,6 @@ void forward_yolo_layer_TA(const layer_TA l, network_TA net)
                     // DMSG("output: %p, biases: %p, mask: %p, box_index: %d, i: %d, j: %d\n", l.output, l.biases, l.mask, box_index, i, j);
                     // DMSG("l.mask[n] : %d", l.mask[n]);
                     // DMSG("n: %d, w: %d, h: %d, net.w: %d, net.h: %d, l.w*l.h: %d\n", n, l.w, l.h, net.w, net.h, l.w * l.h);
-
                     box_TA pred = get_yolo_box_TA(l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, net.w, net.h, l.w*l.h);
                     float best_iou = 0;
                     int best_t = 0;
