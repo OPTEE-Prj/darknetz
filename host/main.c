@@ -251,13 +251,13 @@ void make_convolutional_layer_CA(int batch, int h, int w, int c, int n, int grou
          res, origin);
 }
 
-void make_yolo_layer_CA(int batch, int w, int h, int num, int total, int *mask, int classes, int max_boxes, float jitter, float ignore_thresh, float truth_thresh, int random, float* biases)
+void make_yolo_layer_CA(int batch, int w, int h, int num, int total, int *mask, int classes, int max_boxes, float jitter, float ignore_thresh, float truth_thresh, int random, float* biases, int a_flag)
 {
   TEEC_Operation op;
   uint32_t origin;
   TEEC_Result res;
 
-    int passint[8];
+    int passint[9];
     passint[0] = batch;
     passint[1] = w;
     passint[2] = h;
@@ -266,6 +266,7 @@ void make_yolo_layer_CA(int batch, int w, int h, int num, int total, int *mask, 
     passint[5] = classes;
     passint[6] = max_boxes;
     passint[7] = random;
+    passint[8] = a_flag;
 
     float passfloat[3];
     passfloat[0] = jitter;

@@ -231,7 +231,7 @@ static TEE_Result make_yolo_layer_TA_params(uint32_t param_types,
                                              TEE_PARAM_TYPE_MEMREF_INPUT,
                                              TEE_PARAM_TYPE_MEMREF_INPUT);
 
-  DMSG("has been called");
+//   DMSG("has been called");
   if (param_types != exp_param_types)
   return TEE_ERROR_BAD_PARAMETERS;
 
@@ -248,6 +248,7 @@ static TEE_Result make_yolo_layer_TA_params(uint32_t param_types,
     int classes = params0[5];
     int max_boxes = params0[6];
     int random = params0[7];
+    int a_flag = params0[8];
 
     float jitter= params1[0];
     float ignore_thresh = params1[1];
@@ -256,7 +257,7 @@ static TEE_Result make_yolo_layer_TA_params(uint32_t param_types,
     int *mask = params2;
     float *biases = params3;
 
-    layer_TA lta = make_yolo_layer_TA_new(batch, w, h, num, total, mask, classes);
+    layer_TA lta = make_yolo_layer_TA_new(batch, w, h, num, total, mask, classes, a_flag, biases);
 
     lta.max_boxes = max_boxes;
     lta.random = random;
@@ -264,8 +265,6 @@ static TEE_Result make_yolo_layer_TA_params(uint32_t param_types,
     lta.jitter = jitter;
     lta.ignore_thresh = ignore_thresh;
     lta.truth_thresh = truth_thresh;
-
-    lta.biases = biases;
 
     netta.layers[netnum] = lta;
     if (lta.workspace_size > netta.workspace_size) netta.workspace_size = lta.workspace_size;

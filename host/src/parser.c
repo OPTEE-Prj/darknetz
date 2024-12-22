@@ -353,7 +353,10 @@ layer parse_yolo(list *options, size_params params)
     if (map_file) l.map = read_map(map_file);
 
     a = option_find_str(options, "anchors", 0);
+
+    int a_flag = 0;
     if(a){
+        a_flag = 1;
         int len = strlen(a);
         int n = 1;
         int i;
@@ -368,7 +371,7 @@ layer parse_yolo(list *options, size_params params)
     }
 
     if(count_global > partition_point1 && count_global <= partition_point2){
-        make_yolo_layer_CA(params.batch, params.w, params.h, num, total, mask, classes, l.max_boxes, l.jitter, l.ignore_thresh, l.truth_thresh, l.random, l.biases);
+        make_yolo_layer_CA(params.batch, params.w, params.h, num, total, mask, classes, l.max_boxes, l.jitter, l.ignore_thresh, l.truth_thresh, l.random, l.biases, a_flag);
     }
 
     return l;

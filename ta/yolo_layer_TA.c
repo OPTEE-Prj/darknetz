@@ -19,7 +19,7 @@
 #include <tee_internal_api_extensions.h>
 
 
-layer_TA make_yolo_layer_TA_new(int batch, int w, int h, int n, int total, int *mask, int classes)
+layer_TA make_yolo_layer_TA_new(int batch, int w, int h, int n, int total, int *mask, int classes, int a_flag, float *biases)
 {
     int i;
     layer_TA l = {0};
@@ -37,21 +37,35 @@ layer_TA make_yolo_layer_TA_new(int batch, int w, int h, int n, int total, int *
     l.classes = classes;
     l.cost = calloc(1, sizeof(float));
     l.biases = calloc(total*2, sizeof(float));
-    if(mask) l.mask = mask;
+    l.mask = calloc(n, sizeof(int));
+
+    if(mask){
+        for(i = 0; i < n; ++i){
+            l.mask[i] = mask[i];
+        }        
+    }
     else{
-        l.mask = calloc(n, sizeof(int));
         for(i = 0; i < n; ++i){
             l.mask[i] = i;
         }
     }
+
     l.bias_updates = calloc(n*2, sizeof(float));
     l.outputs = h*w*n*(classes + 4 + 1);
     l.inputs = l.outputs;
     l.truths = 90*(4 + 1);
     l.delta = calloc(batch*l.outputs, sizeof(float));
     l.output = calloc(batch*l.outputs, sizeof(float));
-    for(i = 0; i < total*2; ++i){
-        l.biases[i] = .5;
+
+    if (a_flag){
+        for(i = 0; i < total*2; ++i){
+            l.biases[i] = biases[i];
+        }
+    }
+    else{
+        for(i = 0; i < total*2; ++i){
+            l.biases[i] = .5;
+        }
     }
 
     l.forward_TA = forward_yolo_layer_TA;
@@ -62,8 +76,7 @@ layer_TA make_yolo_layer_TA_new(int batch, int w, int h, int n, int total, int *
     l.output_gpu = cuda_make_array(l.output, batch*l.outputs);
     l.delta_gpu = cuda_make_array(l.delta, batch*l.outputs);
 #endif
-    // # TODO : why is there implicit declaration error...
-    // fprintf(stderr, "yolo\n");
+
     // srand(0);
     return l;
 }
@@ -169,7 +182,11 @@ void forward_yolo_layer_TA(const layer_TA l, network_TA net)
             for (i = 0; i < l.w; ++i) {
                 for (n = 0; n < l.n; ++n) {
                     int box_index = entry_index_TA(l, b, n*l.w*l.h + j*l.w + i, 0);
-                    // TODO : error occuring here.
+
+                    // DMSG("output: %p, biases: %p, mask: %p, box_index: %d, i: %d, j: %d\n", l.output, l.biases, l.mask, box_index, i, j);
+                    // DMSG("l.mask[n] : %d", l.mask[n]);
+                    // DMSG("n: %d, w: %d, h: %d, net.w: %d, net.h: %d, l.w*l.h: %d\n", n, l.w, l.h, net.w, net.h, l.w * l.h);
+
                     box_TA pred = get_yolo_box_TA(l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, net.w, net.h, l.w*l.h);
                     float best_iou = 0;
                     int best_t = 0;

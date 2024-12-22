@@ -57,7 +57,7 @@ void update_net_agrv_CA(int cond, int workspace_size, float *workspace);
 
 void make_convolutional_layer_CA(int batch, int h, int w, int c, int n, int groups, int size, int stride, int padding, ACTIVATION activation, int batch_normalize, int binary, int xnor, int adam, int flipped, float dot);
 
-void make_yolo_layer_CA(int batch, int w, int h, int num, int total, int *mask, int classes, int max_boxes, float jitter, float ignore_thresh, float truth_thresh, int random, float* biases);
+void make_yolo_layer_CA(int batch, int w, int h, int num, int total, int *mask, int classes, int max_boxes, float jitter, float ignore_thresh, float truth_thresh, int random, float* biases, int a_flag);
 
 void make_maxpool_layer_CA(int batch, int h, int w, int c, int size, int stride, int padding);
 
