@@ -1,55 +1,49 @@
 import os
 import json
 
-def convert_coco_to_yolo(coco_json_path, output_dir, images_dir):
-    with open(coco_json_path) as f:
-        data = json.load(f)
-    
-    # Load categories
-    categories = {cat['id']: cat['name'] for cat in data['categories']}
-    
-    # Create output directory
+def convert_coco_to_yolo(coco_json_path, output_dir):
+    with open(coco_json_path, 'r') as f:
+        coco_data = json.load(f)
+
+    # Create output directory if not exists
     os.makedirs(output_dir, exist_ok=True)
 
-    # Parse annotations
-    annotations = {}
-    for ann in data['annotations']:
-        img_id = ann['image_id']
-        bbox = ann['bbox']
-        category_id = ann['category_id']
-        
-        # YOLO format bbox: [center_x, center_y, width, height]
-        x_center = bbox[0] + bbox[2] / 2
-        y_center = bbox[1] + bbox[3] / 2
-        width = bbox[2]
-        height = bbox[3]
-        
-        # Normalize coordinates
-        img_info = next(img for img in data['images'] if img['id'] == img_id)
-        img_width = img_info['width']
-        img_height = img_info['height']
+    # Mapping for category IDs to ensure it's 0-indexed
+    category_map = {cat['id']: idx for idx, cat in enumerate(coco_data['categories'])}
+
+    # Process each annotation
+    for annotation in coco_data['annotations']:
+        image_id = annotation['image_id']
+        bbox = annotation['bbox']
+        category_id = annotation['category_id']
+
+        # YOLO format: [class_id, x_center, y_center, width, height]
+        x_min, y_min, width, height = bbox
+        x_center = x_min + width / 2
+        y_center = y_min + height / 2
+
+        # Normalize values to be between 0 and 1
+        image_info = next(img for img in coco_data['images'] if img['id'] == image_id)
+        img_width = image_info['width']
+        img_height = image_info['height']
         x_center /= img_width
         y_center /= img_height
         width /= img_width
         height /= img_height
 
-        # Append annotation
-        if img_id not in annotations:
-            annotations[img_id] = []
-        annotations[img_id].append(f"{category_id - 1} {x_center} {y_center} {width} {height}")
+        # Generate YOLO annotation
+        yolo_annotation = f"{category_map[category_id]} {x_center} {y_center} {width} {height}\n"
 
-    # Write YOLO annotation files
-    for img in data['images']:
-        img_id = img['id']
-        img_filename = img['file_name']
-        txt_filename = os.path.join(output_dir, os.path.splitext(img_filename)[0] + ".txt")
-        
-        if img_id in annotations:
-            with open(txt_filename, "w") as f:
-                f.write("\n".join(annotations[img_id]))
+        # Write to corresponding txt file
+        image_filename = os.path.splitext(image_info['file_name'])[0]
+        annotation_path = os.path.join(output_dir, f"{image_filename}.txt")
+        with open(annotation_path, 'a') as file:
+            file.write(yolo_annotation)
 
 if __name__ == "__main__":
-    coco_json_path = "/path/to/instances_train2017.json"
-    output_dir = "/mnt/host/share/mjcho/data/train2017"
-    images_dir = "/mnt/host/share/mjcho/data/train2017"
-    convert_coco_to_yolo(coco_json_path, output_dir, images_dir)
+    # Paths
+    coco_json_path = "/mnt/host/share/mjcho/data/annotations/instances_train2017.json"
+    output_dir = "/mnt/host/share/mjcho/data/train2017/"
+
+    # Convert
+    convert_coco_to_yolo(coco_json_path, output_dir)
