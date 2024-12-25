@@ -369,4 +369,17 @@ typedef struct network_TA{
 
 } network_TA;
 
+typedef struct{
+    float x, y, w, h;
+} box_TA;
+
+typedef struct detection{
+    box_TA bbox;
+    int classes;
+    float *prob;
+    float *mask;
+    float objectness;
+    int sort_class;
+} detection;
+
 #endif

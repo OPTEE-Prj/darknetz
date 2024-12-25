@@ -7,6 +7,7 @@
 #include "maxpool_layer_TA.h"
 #include "avgpool_layer_TA.h"
 #include "dropout_layer_TA.h"
+#include "yolo_layer_TA.h"
 
 #include "connected_layer_TA.h"
 #include "softmax_layer_TA.h"
@@ -215,6 +216,56 @@ static TEE_Result make_convolutional_layer_TA_params(uint32_t param_types,
     ACTIVATION_TA activation = get_activation_TA(acti);
 
     layer_TA lta = make_convolutional_layer_TA_new(batch, h, w, c, n, groups, size, stride, padding, activation, batch_normalize, binary, xnor, adam, flipped, dot);
+    netta.layers[netnum] = lta;
+    if (lta.workspace_size > netta.workspace_size) netta.workspace_size = lta.workspace_size;
+    netnum++;
+
+    return TEE_SUCCESS;
+}
+
+static TEE_Result make_yolo_layer_TA_params(uint32_t param_types,
+                                       TEE_Param params[4])
+{
+  uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+                                             TEE_PARAM_TYPE_MEMREF_INPUT,
+                                             TEE_PARAM_TYPE_MEMREF_INPUT,
+                                             TEE_PARAM_TYPE_MEMREF_INPUT);
+
+//   DMSG("has been called");
+  if (param_types != exp_param_types)
+  return TEE_ERROR_BAD_PARAMETERS;
+
+    int *params0 = params[0].memref.buffer;
+    float *params1 = params[1].memref.buffer;
+    int *params2 = params[2].memref.buffer;
+    float *params3 = params[3].memref.buffer;
+
+    int batch = params0[0];
+    int w = params0[1];
+    int h = params0[2];
+    int num = params0[3];
+    int total = params0[4];
+    int classes = params0[5];
+    int max_boxes = params0[6];
+    int random = params0[7];
+    int a_flag = params0[8];
+
+    float jitter= params1[0];
+    float ignore_thresh = params1[1];
+    float truth_thresh = params1[2];
+
+    int *mask = params2;
+    float *biases = params3;
+
+    layer_TA lta = make_yolo_layer_TA_new(batch, w, h, num, total, mask, classes, a_flag, biases);
+
+    lta.max_boxes = max_boxes;
+    lta.random = random;
+
+    lta.jitter = jitter;
+    lta.ignore_thresh = ignore_thresh;
+    lta.truth_thresh = truth_thresh;
+
     netta.layers[netnum] = lta;
     if (lta.workspace_size > netta.workspace_size) netta.workspace_size = lta.workspace_size;
     netnum++;
@@ -800,13 +851,15 @@ static TEE_Result net_truth_TA_params(uint32_t param_types,
                                                TEE_PARAM_TYPE_NONE);
     //TEE_PARAM_TYPE_VALUE_INPUT
 
-    //DMSG("has been called");
+    // DMSG("has been called");
 
     if (param_types != exp_param_types)
     return TEE_ERROR_BAD_PARAMETERS;
 
     int size_truth = params[0].memref.size;
     float *params0 = params[0].memref.buffer;
+
+    netta_truth = calloc(size_truth / sizeof(float), sizeof(float));
 
     for(int z=0; z<size_truth/sizeof(float); z++){
         netta_truth[z] = params0[z];
@@ -888,6 +941,9 @@ TEE_Result TA_InvokeCommandEntryPoint(void __maybe_unused *sess_ctx,
 
         case MAKE_CONV_CMD:
         return make_convolutional_layer_TA_params(param_types, params);
+
+        case MAKE_YOLO_CMD:
+        return make_yolo_layer_TA_params(param_types, params);
 
         case MAKE_MAX_CMD:
         return make_maxpool_layer_TA_params(param_types, params);
