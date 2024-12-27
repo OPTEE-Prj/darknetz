@@ -46,6 +46,7 @@ int partition_point2 = 0;
 int frozen_bool = 0;
 int sepa_save_bool = 0;
 int global_dp = 0;
+int encrypt = 0;
 
 typedef struct{
     char *type;
@@ -1345,17 +1346,17 @@ void load_connected_weights_comm(layer l, FILE *fp, int i, int transpose)
     fread(l.biases, sizeof(float), l.outputs, fp);
     fread(l.weights, sizeof(float), l.outputs*l.inputs, fp);
 
-    transfer_weights_CA(l.biases, l.outputs, i, 'b', 0);
-    transfer_weights_CA(l.weights, l.outputs*l.inputs, i, 'w', transpose);
+    transfer_weights_CA(l.biases, l.outputs, i, 'b', 0, encrypt);
+    transfer_weights_CA(l.weights, l.outputs*l.inputs, i, 'w', transpose, encrypt);
 
     if (l.batch_normalize && (!l.dontloadscales)){
         fread(l.scales, sizeof(float), l.outputs, fp);
         fread(l.rolling_mean, sizeof(float), l.outputs, fp);
         fread(l.rolling_variance, sizeof(float), l.outputs, fp);
 
-        transfer_weights_CA(l.scales, l.outputs, i, 's', 0);
-        transfer_weights_CA(l.rolling_mean, l.outputs, i, 'm', 0);
-        transfer_weights_CA(l.rolling_variance, l.outputs, i, 'v', 0);
+        transfer_weights_CA(l.scales, l.outputs, i, 's', 0, encrypt);
+        transfer_weights_CA(l.rolling_mean, l.outputs, i, 'm', 0, encrypt);
+        transfer_weights_CA(l.rolling_variance, l.outputs, i, 'v', 0, encrypt);
     }
 }
 
@@ -1377,9 +1378,9 @@ void load_batchnorm_weights_comm(layer l, FILE *fp, int i)
     fread(l.rolling_mean, sizeof(float), l.c, fp);
     fread(l.rolling_variance, sizeof(float), l.c, fp);
 
-    transfer_weights_CA(l.scales, l.c, i, 's', 0);
-    transfer_weights_CA(l.rolling_mean, l.c, i, 'm', 0);
-    transfer_weights_CA(l.rolling_variance, l.c, i, 'v', 0);
+    transfer_weights_CA(l.scales, l.c, i, 's', 0, encrypt);
+    transfer_weights_CA(l.rolling_mean, l.c, i, 'm', 0, encrypt);
+    transfer_weights_CA(l.rolling_variance, l.c, i, 'v', 0, encrypt);
 }
 
 void load_convolutional_weights_binary(layer l, FILE *fp)
@@ -1471,20 +1472,20 @@ void load_convolutional_weights_comm(layer l, FILE *fp, int i)
     int num = l.c/l.groups*l.n*l.size*l.size;
 
     fread(l.biases, sizeof(float), l.n, fp);
-    transfer_weights_CA(l.biases, l.n, i, 'b', 0);
+    transfer_weights_CA(l.biases, l.n, i, 'b', 0, encrypt);
 
     if (l.batch_normalize && (!l.dontloadscales)){
         fread(l.scales, sizeof(float), l.n, fp);
         fread(l.rolling_mean, sizeof(float), l.n, fp);
         fread(l.rolling_variance, sizeof(float), l.n, fp);
 
-        transfer_weights_CA(l.scales, l.n, i, 's', 0);
-        transfer_weights_CA(l.rolling_mean, l.n, i, 'm', 0);
-        transfer_weights_CA(l.rolling_variance, l.n, i, 'v', 0);
+        transfer_weights_CA(l.scales, l.n, i, 's', 0, encrypt);
+        transfer_weights_CA(l.rolling_mean, l.n, i, 'm', 0, encrypt);
+        transfer_weights_CA(l.rolling_variance, l.n, i, 'v', 0, encrypt);
     }
 
     fread(l.weights, sizeof(float), num, fp);
-    transfer_weights_CA(l.weights, num, i, 'w', 0);
+    transfer_weights_CA(l.weights, num, i, 'w', 0, encrypt);
 }
 
 

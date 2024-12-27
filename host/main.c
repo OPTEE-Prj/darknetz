@@ -469,16 +469,17 @@ void make_cost_layer_CA(int batch, int inputs, COST_TYPE cost_type, float scale,
          res, origin);
 }
 
-void transfer_weights_CA(float *vec, int length, int layer_i, char type, int additional)
+void transfer_weights_CA(float *vec, int length, int layer_i, char type, int additional, int encrypt)
 {
     TEEC_Operation op;
     uint32_t origin;
     TEEC_Result res;
 
-    int passint[3];
+    int passint[4];
     passint[0] = length;
     passint[1] = layer_i;
     passint[2] = additional;
+    passint[3] = encrypt;
 
     memset(&op, 0, sizeof(op));
     op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_INPUT, TEEC_VALUE_INPUT, TEEC_NONE);
