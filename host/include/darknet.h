@@ -804,6 +804,7 @@ int *read_intlist(char *s, int *n, int d);
 size_t rand_size_t();
 float rand_normal();
 float rand_uniform(float min, float max);
+void run_encrypter(char *cfgfile, char *weightfile, char *filename);
 
 #ifdef __cplusplus
 }

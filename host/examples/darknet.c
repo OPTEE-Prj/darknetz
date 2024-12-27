@@ -1,9 +1,9 @@
 #include "darknet.h"
+#include "parser.h"
 
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 
 extern void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filename, int top);
 extern void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen);
@@ -398,6 +398,15 @@ void visualize(char *cfgfile, char *weightfile)
     visualize_network(net);
 }
 
+void run_encrypter(char *cfgfile, char *weightfile, char *filename){
+    network *net = load_network(cfgfile, weightfile, 0);
+    size_t new_filename_len = strlen(filename) + 20;
+    char *new_filename = malloc(new_filename_len);
+    snprintf(new_filename, new_filename_len, "%s_%d_%d.weights", filename, partition_point1+1, partition_point2);
+    save_weights(net, filename);
+    free(new_filename);
+}
+
 void darknet_main(int argc, char **argv)
 {
     //test_resize("data/bad.jpg");
@@ -435,6 +444,21 @@ void darknet_main(int argc, char **argv)
         char *filename = (argc > 4) ? argv[4]: 0;
         char *outfile = find_char_arg(argc, argv, "-out", 0);
         int fullscreen = find_arg(argc, argv, "-fullscreen");
+        encrypt = find_int_arg(argc, argv, "-encrypt", 0);
+        // partition point of DNN
+        int pp_start = find_int_arg(argc, argv, "-pp_start", 999);
+        if(pp_start == 999){ // when using pp_start_f for forzen first layers outside TEE
+            pp_start = find_int_arg(argc, argv, "-pp_start_f", 999);
+            frozen_bool = 1;
+        }
+        if(pp_start == 999){ // when using pp_f_only for forzen first layers (all in REE)
+            pp_start = find_int_arg(argc, argv, "-pp_f_only", 999);
+            frozen_bool = 2;
+        }
+
+        partition_point1 = pp_start - 1;
+        int pp_end = find_int_arg(argc, argv, "-pp_end", 999);
+        partition_point2 = pp_end;
         test_detector("cfg/coco.data", argv[2], argv[3], filename, thresh, .5, outfile, fullscreen);
     } else if (0 == strcmp(argv[1], "cifar")){
         run_cifar(argc, argv);
@@ -496,6 +520,12 @@ void darknet_main(int argc, char **argv)
         mkimg(argv[2], argv[3], atoi(argv[4]), atoi(argv[5]), atoi(argv[6]), argv[7]);
     } else if (0 == strcmp(argv[1], "imtest")){
         test_resize(argv[2]);
+    } else if (0 == strcmp(argv[1], "encrypt")){
+        int pp_start = find_int_arg(argc, argv, "-pp_start", 999);
+        partition_point1 = pp_start - 1;
+        int pp_end = find_int_arg(argc, argv, "-pp_end", 999);
+        partition_point2 = pp_end;
+        run_encrypter(argv[2], argv[3], "encrypted_weight");
     } else {
         fprintf(stderr, "Not an option: %s\n", argv[1]);
     }
