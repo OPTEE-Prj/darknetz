@@ -9,6 +9,7 @@ extern int frozen_bool;
 extern int sepa_save_bool;
 extern int count_global;
 extern int global_dp;
+extern int encrypt;
 
 void save_network(network net, char *filename);
 void save_weights_double(network net, char *filename);

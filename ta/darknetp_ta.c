@@ -449,10 +449,11 @@ static TEE_Result transfer_weights_TA_params(uint32_t param_types,
     int length = params1[0];
     int layer_i = params1[1];
     int additional = params1[2];
+    int encrypt = params1[3];
 
     char type = params[2].value.a;
 
-    load_weights_TA(vec, length, layer_i, type, additional);
+    load_weights_TA(vec, length, layer_i, type, additional, encrypt);
 
     return TEE_SUCCESS;
 }

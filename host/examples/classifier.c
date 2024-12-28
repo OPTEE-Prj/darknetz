@@ -1279,6 +1279,8 @@ void run_classifier(int argc, char **argv)
         int ngpus;
         int *gpus = read_intlist(gpu_list, &ngpus, gpu_index);
 
+        encrypt = find_int_arg(argc, argv, "-encrypt", 0);
+
         // partition point of DNN
         int pp_start = find_int_arg(argc, argv, "-pp_start", 999);
         if(pp_start == 999){ // when using pp_start_f for forzen first layers outside TEE
