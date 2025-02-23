@@ -9,13 +9,14 @@ alias SWD="telnet localhost 54323"
 
 
 build/common.mk
+```
 # The ports used for the consoles that are spawned when running QEMU.
 QEMU_NW_PORT ?= 54322
 QEMU_SW_PORT ?= 54323
-
+```
 
 build/qemu_v8.mk
-
+```
 QEMU_RUN_ARGS = $(QEMU_BASE_ARGS) $(QEMU_SCMI_ARGS)
 QEMU_RUN_ARGS += $(QEMU_RUN_ARGS_COMMON)
 #QEMU_RUN_ARGS += -s -S -serial tcp:127.0.0.1:$(QEMU_NW_PORT) -serial tcp:127.0.0.1:$(QEMU_SW_PORT) 
@@ -32,3 +33,4 @@ run-only:
 #	$(call wait-for-ports,$(QEMU_NW_PORT),$(QEMU_SW_PORT))
 	cd $(BINARIES_PATH) && $(QEMU_BUILD)/aarch64-softmmu/qemu-system-aarch64 \
 		$(QEMU_RUN_ARGS)
+```
